@@ -28,6 +28,11 @@ ui <- fluidPage(
   
   helpText(h5('Please note: The application can take 20-45 minutes to run.', br()), style = "color:black"),
   
+  checkboxInput(
+    inputId = "loadMARTA",
+    label = "Load files from the MARTA case study"
+  ),
+  
   helpText(h5("Enter the average hourly bus operator wage for your agency.", br(), 
               "If nothing is entered, this value will default to $15/hr"), style = "color:black"),
   textInput(inputId = "wage.input",
@@ -111,38 +116,58 @@ ui <- fluidPage(
 server <- function(input, output){
   observeEvent(input$submit, { # only run when user clicks submit
     
-    vac_prop <- input$vac.input
-    garages <- input$garages.input
-    calendar <- input$cal.input
-    trips <- input$trips.input
-    routes <- input$routes.input
-    times <- input$times.input
-    stops <- input$stops.input
+    if(input$loadMARTA){
+      cat(file = stderr(), "\nUsing Case Study Files \n")      # TRACING PROGRESS
+      
+      # read in MARTA values
+      # network data
+      garages <- read.csv("www/CaseStudyData/MARTA_garages.csv")
+      vac_prop <- read.csv("www/CaseStudyData/fulton_vac_prop_data.csv")
+      
+      
+      # GTFS
+      calendar <- read.delim("www/CaseStudyData/calendar.txt", sep = ",")
+      trips <- read.delim("www/CaseStudyData/trips.txt", sep = "\t") 
+      routes <- read.delim("www/CaseStudyData/routes.txt", sep = "\t", stringsAsFactors = FALSE)
+      times <- read.delim("www/CaseStudyData/stop_times.txt", sep = ",", stringsAsFactors = FALSE)
+      stops <- read.delim("www/CaseStudyData/stops.txt", sep = "\t", stringsAsFactors = FALSE)
+      
+    }else{
+      cat(file = stderr(), "\nUploading Files \n")      # TRACING PROGRESS
+      
+      vac_prop <- input$vac.input
+      garages <- input$garages.input
+      calendar <- input$cal.input
+      trips <- input$trips.input
+      routes <- input$routes.input
+      times <- input$times.input
+      stops <- input$stops.input
+      
+      # return NULL if any file inputs are missing
+      if(is.null(input$vac.input)) return(NULL)
+      if(is.null(input$garages.input)) return(NULL)
+      if(is.null(input$cal.input)) return(NULL)
+      if(is.null(input$trips.input)) return(NULL)
+      if(is.null(input$routes.input)) return(NULL)
+      if(is.null(input$times.input)) return(NULL)
+      if(is.null(input$stops.input)) return(NULL)
+      
+      
+      # read in user inputs
+      # network data
+      vac_prop <- read.csv(vac_prop$datapath)
+      garages <- read.csv(garages$datapath)
+      
+      
+      # GTFS
+      calendar <- read.delim(calendar$datapath, sep = ",")
+      trips <- read.delim(trips$datapath, sep = "\t") 
+      routes <- read.delim(routes$datapath, sep = "\t", stringsAsFactors = FALSE)
+      times <- read.delim(times$datapath, sep = ",", stringsAsFactors = FALSE)
+      stops <- read.delim(stops$datapath, sep = "\t", stringsAsFactors = FALSE)
+    }
+    
     resChoice <- input$resRoad
-    
-    
-    # return NULL if any file inputs are missing
-    if(is.null(input$vac.input)) return(NULL)
-    if(is.null(input$garages.input)) return(NULL)
-    if(is.null(input$cal.input)) return(NULL)
-    if(is.null(input$trips.input)) return(NULL)
-    if(is.null(input$routes.input)) return(NULL)
-    if(is.null(input$times.input)) return(NULL)
-    if(is.null(input$stops.input)) return(NULL)
-    
-    
-    # read in user inputs
-    # network data
-    vac_prop <- read.csv(vac_prop$datapath)
-    garages <- read.csv(garages$datapath)
-    
-    
-    # GTFS
-    calendar <- read.delim(calendar$datapath, sep = ",")
-    trips <- read.delim(trips$datapath, sep = "\t") 
-    routes <- read.delim(routes$datapath, sep = "\t", stringsAsFactors = FALSE)
-    times <- read.delim(times$datapath, sep = ",", stringsAsFactors = FALSE)
-    stops <- read.delim(stops$datapath, sep = "\t", stringsAsFactors = FALSE)
 
     
     # cost inputs
