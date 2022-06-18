@@ -44,10 +44,15 @@ ui <- fluidPage(
   # GTFS files
   helpText(br(), h4("Upload the GTFS files for your agency below. All files should have .txt extensions."), style = "color:black"),
   fileInput(inputId = "cal.input", label = "Upload GTFS calendar.txt file:", buttonLabel = "Browse..."),
+  radioButtons(inputId = "cal.delim", label="calendar.txt deliminator", choices = c("comma"=",", "tab"="\t"), inline = T),
   fileInput(inputId = "trips.input", label = "Upload GTFS trips.txt file:", buttonLabel = "Browse..."),
+  radioButtons(inputId = "trips.delim", label="trips.txt deliminator", choices = c("comma"=",", "tab"="\t"), inline = T),
   fileInput(inputId = "routes.input", label = "Upload GTFS routes.txt file:", buttonLabel = "Browse..."),
+  radioButtons(inputId = "routes.delim", label="routes.txt deliminator", choices = c("comma"=",", "tab"="\t"), inline = T),
   fileInput(inputId = "times.input", label = "Upload GTFS stop_times.txt file:", buttonLabel = "Browse..."),
+  radioButtons(inputId = "times.delim", label="stop_times.txt deliminator", choices = c("comma"=",", "tab"="\t"), inline = T),
   fileInput(inputId = "stops.input", label = "Upload GTFS stops.txt file:", buttonLabel = "Browse..."),
+  radioButtons(inputId = "stops.delim", label="stops.txt deliminator", choices = c("comma"=",", "tab"="\t"), inline = T),
   
   # Depot data
   helpText(br(), h4("Finally, upload the .csv files with the coordinates of your existing depots and the vacant properties you want to consider."),
@@ -111,6 +116,8 @@ ui <- fluidPage(
 server <- function(input, output){
   observeEvent(input$submit, { # only run when user clicks submit
     
+   
+    
     vac_prop <- input$vac.input
     garages <- input$garages.input
     calendar <- input$cal.input
@@ -138,11 +145,11 @@ server <- function(input, output){
     
     
     # GTFS
-    calendar <- read.delim(calendar$datapath, sep = ",")
-    trips <- read.delim(trips$datapath, sep = "\t") 
-    routes <- read.delim(routes$datapath, sep = "\t", stringsAsFactors = FALSE)
-    times <- read.delim(times$datapath, sep = ",", stringsAsFactors = FALSE)
-    stops <- read.delim(stops$datapath, sep = "\t", stringsAsFactors = FALSE)
+    calendar <- read.delim(calendar$datapath, sep = input$cal.delim)
+    trips <- read.delim(trips$datapath, sep = input$trips.delim) 
+    routes <- read.delim(routes$datapath, sep = input$routes.delim, stringsAsFactors = FALSE)
+    times <- read.delim(times$datapath, sep = input$times.delim, stringsAsFactors = FALSE)
+    stops <- read.delim(stops$datapath, sep = input$stops.delim, stringsAsFactors = FALSE)
 
     
     # cost inputs
@@ -163,11 +170,15 @@ server <- function(input, output){
     # eliminate rail routes                                                           
     rail_ids <- routes$route_id[which(!grepl("\\d", routes$route_short_name))]
     trips <- trips[ ! trips$route_id %in% rail_ids, ]
+    cat(file = stderr(), "isolated rail_ids \n") 
     
     # only want to calculate deadhead for typical weekday
     weekday_code <- as.numeric(calendar$service_id[which(calendar$wednesday == 1)])
-    trips <- trips[trips$service_id == weekday_code , ]
-    
+    if(any(is.na(weekday_code))){
+      weekday_code <- as.character(calendar$service_id[which(calendar$wednesday == 1)])
+    }
+    trips1 <- trips[trips$service_id %in% weekday_code , ] # == changed to %in% in case there are multiple weekday codes like Jacksonville
+    cat(file = stderr(), "isolated weekday trips \n") 
     # join routes <> trips <> stop times <> stops
     bus_routes <- routes %>% filter(!route_id %in% rail_ids) # drop train & streetcar routes
     
@@ -198,23 +209,30 @@ server <- function(input, output){
     names(vac_prop)[1] <- "address"
     vac_prop$address <- as.character(vac_prop$address)
     
+    cat(file = stderr(), "vac props address renamed \n") 
     
     ##### set up network #####
     box <- st_bbox(fl_stop_locs)
     # box <- matrix(c(box[1], box[3], box[2], box[4]), 2, 2)
+    cat(file = stderr(), "bbox created \n") 
 
     lon_min <- box[1]
     lon_max <- box[3]
     lat_min <- box[2]
     lat_max <- box[4]
+    
+    cat(file = stderr(), "box to lat/lon \n") 
+    
     garage_lon_min <- min(garages$lon)
     garage_lon_max <- max(garages$lon)
     garage_lat_min <- min(garages$lat)
     garage_lat_max <- max(garages$lat)
+    cat(file = stderr(), "garage lat/lon min/max \n") 
     vac_lon_min <- min(vac_prop$lon)
     vac_lon_max <- max(vac_prop$lon)
     vac_lat_min <- min(vac_prop$lat)
     vac_lat_max <- max(vac_prop$lat)
+    cat(file = stderr(), "vacancies lat/lon min/max \n") 
     
     lon_min <- min(lon_min, garage_lon_min, vac_lon_min)
     lon_max <- max(lon_max, garage_lon_max, vac_lon_max)
