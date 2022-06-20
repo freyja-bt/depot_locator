@@ -312,7 +312,10 @@ server <- function(input, output){
     # match first/last stops to vertices
     fl_stops$vert <- match_points_to_graph(verts, fl_stops[, c("lon", "lat")], connected = TRUE)
     fl_stops$vert <- verts$id[fl_stops$vert]
+    
+    if(input$loadMARTA){
     fl_stops$vert[fl_stops$stop_id == 902145] <- fl_stops$vert[fl_stops$stop_id == 902144] # manually fixing North Lindbergh stop
+    }
     
     cat(file = stderr(), "Stops are matched to network vertices \n")                            # TRACING PROGRESS
     
