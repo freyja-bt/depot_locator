@@ -43,16 +43,26 @@ ui <- fluidPage(
   
   # GTFS files
   helpText(br(), h4("Upload the GTFS files for your agency below. All files should have .txt extensions."), style = "color:black"),
-  fileInput(inputId = "cal.input", label = "Upload GTFS calendar.txt file:", buttonLabel = "Browse..."),
-  radioButtons(inputId = "cal.delim", label="calendar.txt deliminator", choices = c("comma"=",", "tab"="\t"), inline = T),
-  fileInput(inputId = "trips.input", label = "Upload GTFS trips.txt file:", buttonLabel = "Browse..."),
-  radioButtons(inputId = "trips.delim", label="trips.txt deliminator", choices = c("comma"=",", "tab"="\t"), inline = T),
-  fileInput(inputId = "routes.input", label = "Upload GTFS routes.txt file:", buttonLabel = "Browse..."),
-  radioButtons(inputId = "routes.delim", label="routes.txt deliminator", choices = c("comma"=",", "tab"="\t"), inline = T),
-  fileInput(inputId = "times.input", label = "Upload GTFS stop_times.txt file:", buttonLabel = "Browse..."),
-  radioButtons(inputId = "times.delim", label="stop_times.txt deliminator", choices = c("comma"=",", "tab"="\t"), inline = T),
-  fileInput(inputId = "stops.input", label = "Upload GTFS stops.txt file:", buttonLabel = "Browse..."),
-  radioButtons(inputId = "stops.delim", label="stops.txt deliminator", choices = c("comma"=",", "tab"="\t"), inline = T),
+  div(
+    div(style="display: inline-block;vertical-align:top;",
+  fileInput(inputId = "cal.input", label = "Upload GTFS calendar.txt file:", buttonLabel = "Browse...")),div(style="display: inline-block;vertical-align:top;",
+  radioButtons(inputId = "cal.delim", label="calendar.txt delimiter:", choices = c("comma"=",", "tab"="\t"), inline = T))),
+  div(
+    div(style="display: inline-block;vertical-align:top;",
+  fileInput(inputId = "trips.input", label = "Upload GTFS trips.txt file:", buttonLabel = "Browse...")),div(style="display: inline-block;vertical-align:top;",
+  radioButtons(inputId = "trips.delim", label="trips.txt delimiter:", choices = c("comma"=",", "tab"="\t"), inline = T))),
+  div(
+    div(style="display: inline-block;vertical-align:top;",
+  fileInput(inputId = "routes.input", label = "Upload GTFS routes.txt file:", buttonLabel = "Browse...")),div(style="display: inline-block;vertical-align:top;",
+  radioButtons(inputId = "routes.delim", label="routes.txt delimiter:", choices = c("comma"=",", "tab"="\t"), inline = T))),
+  div(
+    div(style="display: inline-block;vertical-align:top;",
+  fileInput(inputId = "times.input", label = "Upload GTFS stop_times.txt file:", buttonLabel = "Browse...")),div(style="display: inline-block;vertical-align:top;",
+  radioButtons(inputId = "times.delim", label="stop_times.txt delimiter:", choices = c("comma"=",", "tab"="\t"), inline = T))),
+  div(
+    div(style="display: inline-block;vertical-align:top;",
+  fileInput(inputId = "stops.input", label = "Upload GTFS stops.txt file:", buttonLabel = "Browse...")),div(style="display: inline-block;vertical-align:top;",
+  radioButtons(inputId = "stops.delim", label="stops.txt delimiter:", choices = c("comma"=",", "tab"="\t"), inline = T))),
   
   # Depot data
   helpText(br(), h4("Finally, upload the .csv files with the coordinates of your existing depots and the vacant properties you want to consider."),
@@ -177,7 +187,7 @@ server <- function(input, output){
     if(any(is.na(weekday_code))){
       weekday_code <- as.character(calendar$service_id[which(calendar$wednesday == 1)])
     }
-    trips1 <- trips[trips$service_id %in% weekday_code , ] # == changed to %in% in case there are multiple weekday codes like Jacksonville
+    trips <- trips[trips$service_id %in% weekday_code , ] # == changed to %in% in case there are multiple weekday codes like Jacksonville
     cat(file = stderr(), "isolated weekday trips \n") 
     # join routes <> trips <> stop times <> stops
     bus_routes <- routes %>% filter(!route_id %in% rail_ids) # drop train & streetcar routes
@@ -281,7 +291,7 @@ server <- function(input, output){
     names(st_geometry(streets_fil)) = NULL
     
     # delete unnecessary variables in network
-    streets_fil <- streets_fil %>% select(c("osm_id", "name", "highway", "width", "width.lanes", "geometry"))
+    streets_fil <- streets_fil %>% select(c("osm_id", "name", "highway", "width", "geometry"), any_of(c("width.lanes")))
     
     # apply weights to OSM network
     # distance in meters, time in seconds
@@ -305,7 +315,7 @@ server <- function(input, output){
     # match first/last stops to vertices
     fl_stops$vert <- match_points_to_graph(verts, fl_stops[, c("lon", "lat")], connected = TRUE)
     fl_stops$vert <- verts$id[fl_stops$vert]
-    fl_stops$vert[fl_stops$stop_id == 902145] <- fl_stops$vert[fl_stops$stop_id == 902144] # manually fixing North Lindbergh stop
+    # fl_stops$vert[fl_stops$stop_id == 902145] <- fl_stops$vert[fl_stops$stop_id == 902144] # manually fixing North Lindbergh stop ## Not sure what to do with this in the long run...
     
     cat(file = stderr(), "Stops are matched to network vertices \n")                            # TRACING PROGRESS
     
