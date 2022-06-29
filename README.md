@@ -63,7 +63,7 @@ NOTE: The output on cost savings will not be saved. Please copy and paste this t
     * Save the file and re-run the app.
 
 ## Automatically load data from MARTA case study
-1. Download R and (optional) R studio as per the directions below
+1. Download R and (optional) R studio as per the directions above
 2. Paste the following code in the console and press "enter"
 ```
 install.packages("shiny")
